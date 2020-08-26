@@ -1,5 +1,9 @@
 <!DOCTYPE html>
 <html>
+  <!--
+    Handling multiple layers should be performed with 'panes' and CSS.
+    See: 'https://github.com/Leaflet/Leaflet/issues/4', post from 'ghybs'.
+  -->
 
   <head>
     <meta charset="utf-8"/>
@@ -25,6 +29,8 @@
     <script src="dist/leaflet.canvaslayer.field.js"></script>
 
     <script>
+        // let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate.tiff';
+        let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate_float32.tiff';
         let map = L.map('map');
 
         /* Dark basemap */
@@ -35,13 +41,14 @@
         }).addTo(map);
 
         /* GeoTIFF with n bands */
-        d3.request("data/tz850.tiff").responseType('arraybuffer').get(
+        d3.request(geotiffUrl).responseType('arraybuffer').get(
             function (error, tiffData) {
                 let scalarFields = L.ScalarField.multipleFromGeoTIFF(tiffData.response);
                 let legend = {};
                 let bounds = {};
                 let playerReferences = [];
 
+                // scalarFields = scalarFields.slice(0, 6);  // TODO - temp shortage
                 scalarFields.forEach(function (sf, index) {
                     let layerSf = L.canvasLayer.scalarField(sf, {
                         color: chroma.scale('RdPu').domain(sf.range),
@@ -82,6 +89,9 @@
                     //.goTo(0);
 
                 map.fitBounds(bounds);
+                
+                console.log("Map Panes.");
+                console.log(map.getPanes());
 
             });
     </script>

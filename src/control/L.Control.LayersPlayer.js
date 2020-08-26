@@ -8,6 +8,7 @@ L.Control.LayersPlayer = L.Control.extend({
         this.canvasList = canvasList;
         this.refreshTime = options.refreshTime ? options.refreshTime : 1500;
         this.loop = options.loop ? options.loop : false;
+        this.currentPlay = null;
         options.cvLst = this.canvasList;
         L.Util.setOptions(this, options);
     },
@@ -32,12 +33,23 @@ L.Control.LayersPlayer = L.Control.extend({
         return this.div;
     },
     
+    displayLayer: function (idxShow) {
+        /** Fix this entire function making better reference to the panes */
+        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        if (control._map.getPanes().overlayPane.children.length == 0) {
+            return;
+        }
+        control.canvasList.forEach(function (_, idxCurrent) {
+            let paneChild = control._map.getPanes().overlayPane.children[idxCurrent];
+            paneChild.style.display = (idxShow == idxCurrent) ? 'block' : 'none';
+        });
+    },
+    
     goTo: function (idx) {
         this.currentFrame = idx;
         
-        /** TODO: show idx canvas */
-        
-        /** TODO: hide other canvas */
+        /** show idx canvas, hide other canvas */
+        this.displayLayer(idx);
         
         /** update counter */
         this.div
@@ -52,6 +64,18 @@ L.Control.LayersPlayer = L.Control.extend({
         return this.div;
     },
     
+    goFirst: function() {
+        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        control.goTo(0);
+    },
+    
+    goLast: function() {
+        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        let lastId = control.canvasList.length - 1;
+        
+        control.goTo((lastId >= 0) ? lastId : 0);
+    },
+    
     goNext: function() {
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         let nextIdx = control.currentFrame + 1;
@@ -62,6 +86,7 @@ L.Control.LayersPlayer = L.Control.extend({
             control.goTo(0);
         } else {
             control.goTo(control.canvasList.length-1);
+            control.playStop();
         }
     },
     
@@ -75,6 +100,27 @@ L.Control.LayersPlayer = L.Control.extend({
             control.goTo(control.canvasList.length-1);
         } else {
             control.goTo(0);
+            control.playStop();
+        }
+    },
+    
+    playBackward: function() {
+        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        control.playStop();
+        control.currentPlay = setInterval(control.goPrev, control.refreshTime);
+    },
+    
+    playForward: function() {
+        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        control.playStop();
+        control.currentPlay = setInterval(control.goNext, control.refreshTime);
+    },
+    
+    playStop: function() {
+        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        if (control.currentPlay != null) {
+            clearInterval(control.currentPlay);
+            control.currentPlay = null;
         }
     },
     
@@ -115,11 +161,13 @@ L.Control.LayersPlayer = L.Control.extend({
             null,
             container
         );
-        d.style.width = '100px';
+        d.style.width = '112px';
         
         this._createMoveFirstButton(d);
         this._createPlayBackwardsButton(d);
         this._createPreviousButton(d);
+        
+        this._createStopButton(d);
         
         this._createNextButton(d);
         this._createPlayForwardButton(d);
@@ -143,10 +191,7 @@ L.Control.LayersPlayer = L.Control.extend({
         button.innerHTML = '|<';
         
         L.DomEvent
-            .addListener(button, 'click', function(){
-                /** TODO: fill mock function */
-                console.log('Mock function: first');
-            });
+            .addListener(button, 'click', this.goFirst);
     },
     
     _createPlayBackwardsButton: function (d) {
@@ -167,10 +212,7 @@ L.Control.LayersPlayer = L.Control.extend({
         button.innerHTML = '<-';
         
         L.DomEvent
-            .addListener(button, 'click', function(){
-                /** TODO: fill mock function */
-                console.log('Mock function: backwards');
-            });
+            .addListener(button, 'click', this.playBackward);
     },
     
     _createPreviousButton: function (d) {
@@ -230,10 +272,27 @@ L.Control.LayersPlayer = L.Control.extend({
         button.innerHTML = '->';
         
         L.DomEvent
-            .addListener(button, 'click', function(){
-                /** TODO: fill mock function */
-                console.log('Mock function: forward');
-            });
+            .addListener(button, 'click', this.playForward);
+    },
+    
+    _createStopButton: function (d) {
+        let button = L.DomUtil.create(
+            'div',
+            null,
+            d
+        );
+        button.style.float = 'left';
+        button.style.display = 'block';
+        button.style.width = '10px';
+        button.style.backgroundColor = '#FFFFFF';
+        button.style.border = '3px solid #DFDFDF';
+        button.style.margin = '1px';
+        button.style.cursor = 'pointer';
+        button.style.color = '#333333';
+        button.innerHTML = '&#9632;';
+        
+        L.DomEvent
+            .addListener(button, 'click', this.playStop);
     },
     
     _createMoveLastButton: function (d) {
@@ -253,18 +312,7 @@ L.Control.LayersPlayer = L.Control.extend({
         button.innerHTML = '>|';
         
         L.DomEvent
-            .addListener(button, 'click', function(){
-                /** TODO: fill mock function */
-                console.log('Mock function: last');
-            });
-    },
-    
-    _createStopButton: function (d) {
-        let button = d3
-            .select(d)
-            .append('span')
-            .text('Stop');
-        return button;
+            .addListener(button, 'click', this.goLast);
     }
 });
 
