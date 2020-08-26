@@ -4,9 +4,10 @@
 
 L.Control.LayersPlayer = L.Control.extend({
 
-    initialize: function (canvasList, options) {
+    initialize: function (canvasList, paneId, options) {
         this.canvasList = canvasList;
-        this.refreshTime = options.refreshTime ? options.refreshTime : 1500;
+        this.paneId = paneId;
+        this.refreshTime = options.refreshTime ? options.refreshTime : 1000;
         this.loop = options.loop ? options.loop : false;
         this.currentPlay = null;
         options.cvLst = this.canvasList;
@@ -34,14 +35,15 @@ L.Control.LayersPlayer = L.Control.extend({
     },
     
     displayLayer: function (idxShow) {
-        /** Fix this entire function making better reference to the panes */
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
-        if (control._map.getPanes().overlayPane.children.length == 0) {
-            return;
-        }
-        control.canvasList.forEach(function (_, idxCurrent) {
-            let paneChild = control._map.getPanes().overlayPane.children[idxCurrent];
-            paneChild.style.display = (idxShow == idxCurrent) ? 'block' : 'none';
+        let paneChildren = control._map.getPane(control.paneId);
+        paneChildren = paneChildren.children;
+        
+        if (paneChildren.length == 0) return;
+        
+        [...Array(control.canvasList.length).keys()].forEach(function (idxCurrent) {
+            let paneChild = paneChildren[idxCurrent+1];
+            paneChild.style.display = (idxShow == (idxCurrent+1)) ? 'block' : 'none';
         });
     },
     
@@ -49,12 +51,12 @@ L.Control.LayersPlayer = L.Control.extend({
         this.currentFrame = idx;
         
         /** show idx canvas, hide other canvas */
-        this.displayLayer(idx);
+        this.displayLayer(idx+1);
         
         /** update counter */
         this.div
             .querySelector('.leaflet-control-layersPlayer-frameCounter')
-            .innerHTML = (idx+1) + '/' + this.canvasList.length;
+            .innerHTML = this._zeroPad(idx+1, 2) + '/' + this._zeroPad(this.canvasList.length, 2);
         
         /** update label */
         this.div
@@ -137,10 +139,14 @@ L.Control.LayersPlayer = L.Control.extend({
             .select(d)
             .append('span')
             .style('color', this.options.textColor)
+            .style('text-color', '#777777')
             .style('display', 'block')
             .style('margin-bottom', '5px')
+            .style('width', '35px')
+            .style('display', 'block')
+            .style('float', 'left')
             .attr('class', 'leaflet-control-layersPlayer-frameCounter')
-            .text('0/' + n);
+            .text('00/' + this._zeroPad(n, 2));
         
         d3
             .select(d)
@@ -148,6 +154,9 @@ L.Control.LayersPlayer = L.Control.extend({
             .style('color', this.options.textColor)
             .style('display', 'block')
             .style('margin-bottom', '5px')
+            .style('width', '125px')
+            .style('display', 'block')
+            .style('float', 'left')
             .attr('class', 'leaflet-control-layersPlayer-frameLabel')
             .text('Loading labels...');
         container.innerHTML += d.innerHTML;
@@ -155,13 +164,9 @@ L.Control.LayersPlayer = L.Control.extend({
     },
 
     _createButtons: function (container) {
+        let d = L.DomUtil.create('div', null, container);
         
-        let d = L.DomUtil.create(
-            'div',
-            null,
-            container
-        );
-        d.style.width = '112px';
+        d.style.width = '160px';  /** TODO - make it custom */
         
         this._createMoveFirstButton(d);
         this._createPlayBackwardsButton(d);
@@ -175,148 +180,155 @@ L.Control.LayersPlayer = L.Control.extend({
     },
     
     _createMoveFirstButton: function (d) {
-        let button = L.DomUtil.create(
-            'div',
-            null,
-            d
-        );
-        button.style.float = 'left';
-        button.style.display = 'block';
-        button.style.width = '10px';
-        button.style.backgroundColor = '#FFFFFF';
-        button.style.border = '3px solid #DFDFDF';
-        button.style.margin = '1px';
-        button.style.cursor = 'pointer';
-        button.style.color = '#333333';
-        button.innerHTML = '|<';
+        let button = L.DomUtil.create('div', null, d);
+        
+        try {
+            this._addStyles(button, this.options.buttons.moveFirst.style);
+        } catch (ex) {
+            this._addStyles(button, this._buttonsDefaultStyle);
+        }
+        try {
+            button.innerHTML = this.options.buttons.moveFirst.innerHTML;
+        } catch (ex) {
+            button.innerHTML = '|&#9665;';
+        }
         
         L.DomEvent
             .addListener(button, 'click', this.goFirst);
     },
     
     _createPlayBackwardsButton: function (d) {
+        let button = L.DomUtil.create('div', null, d);
         
-        let button = L.DomUtil.create(
-            'div',
-            null,
-            d
-        );
-        button.style.float = 'left';
-        button.style.display = 'block';
-        button.style.width = '10px';
-        button.style.backgroundColor = '#FFFFFF';
-        button.style.border = '3px solid #DFDFDF';
-        button.style.margin = '1px';
-        button.style.cursor = 'pointer';
-        button.style.color = '#333333';
-        button.innerHTML = '<-';
+        try {
+            this._addStyles(button, this.options.buttons.playBackward.style);
+        } catch (ex) {
+            this._addStyles(button, this._buttonsDefaultStyle);
+        }
+        try {
+            button.innerHTML = this.options.buttons.playBackward.innerHTML;
+        } catch (ex) {
+            button.innerHTML = '&#9668;';
+        }
         
         L.DomEvent
             .addListener(button, 'click', this.playBackward);
     },
     
     _createPreviousButton: function (d) {
+        let button = L.DomUtil.create('div', null, d);
         
-        let button = L.DomUtil.create(
-            'div',
-            null,
-            d
-        );
-        button.style.float = 'left';
-        button.style.display = 'block';
-        button.style.width = '10px';
-        button.style.backgroundColor = '#FFFFFF';
-        button.style.border = '3px solid #DFDFDF';
-        button.style.margin = '1px';
-        button.style.cursor = 'pointer';
-        button.style.color = '#333333';
-        button.innerHTML = '<';
+        try {
+            this._addStyles(button, this.options.buttons.prev.style);
+        } catch (ex) {
+            this._addStyles(button, this._buttonsDefaultStyle);
+        }
+        try {
+            button.innerHTML = this.options.buttons.prev.innerHTML;
+        } catch (ex) {
+            button.innerHTML = '&#9665;';
+        }
         
         L.DomEvent
             .addListener(button, 'click', this.goPrev);
     },
     
     _createNextButton: function (d) {
-        let button = L.DomUtil.create(
-            'div',
-            null,
-            d
-        );
-        button.style.float = 'left';
-        button.style.display = 'block';
-        button.style.width = '10px';
-        button.style.backgroundColor = '#FFFFFF';
-        button.style.border = '3px solid #DFDFDF';
-        button.style.margin = '1px';
-        button.style.cursor = 'pointer';
-        button.style.color = '#333333';
-        button.innerHTML = '>';
+        let button = L.DomUtil.create('div', null, d);
         
-        L.DomEvent.addListener(button, 'click', this.goNext);
+        try {
+            this._addStyles(button, this.options.buttons.next.style);
+        } catch (ex) {
+            this._addStyles(button, this._buttonsDefaultStyle);
+        }
+        try {
+            button.innerHTML = this.options.buttons.next.innerHTML;
+        } catch (ex) {
+            button.innerHTML = '&#9655;';
+        }
+        
+        L.DomEvent
+            .addListener(button, 'click', this.goNext);
     },
     
     _createPlayForwardButton: function (d) {
-        let button = L.DomUtil.create(
-            'div',
-            null,
-            d
-        );
-        button.style.float = 'left';
-        button.style.display = 'block';
-        button.style.width = '10px';
-        button.style.backgroundColor = '#FFFFFF';
-        button.style.border = '3px solid #DFDFDF';
-        button.style.margin = '1px';
-        button.style.cursor = 'pointer';
-        button.style.color = '#333333';
-        button.innerHTML = '->';
+        let button = L.DomUtil.create('div', null, d);
+        
+        try {
+            this._addStyles(button, this.options.buttons.playForward.style);
+        } catch (ex) {
+            this._addStyles(button, this._buttonsDefaultStyle);
+        }
+        try {
+            button.innerHTML = this.options.buttons.playForward.innerHTML;
+        } catch (ex) {
+            button.innerHTML = '&#9658;';
+        }
         
         L.DomEvent
             .addListener(button, 'click', this.playForward);
     },
     
     _createStopButton: function (d) {
-        let button = L.DomUtil.create(
-            'div',
-            null,
-            d
-        );
-        button.style.float = 'left';
-        button.style.display = 'block';
-        button.style.width = '10px';
-        button.style.backgroundColor = '#FFFFFF';
-        button.style.border = '3px solid #DFDFDF';
-        button.style.margin = '1px';
-        button.style.cursor = 'pointer';
-        button.style.color = '#333333';
-        button.innerHTML = '&#9632;';
+        let button = L.DomUtil.create('div', null, d);
+        
+        try {
+            this._addStyles(button, this.options.buttons.stop.style);
+        } catch (ex) {
+            this._addStyles(button, this._buttonsDefaultStyle);
+        }
+        try {
+            button.innerHTML = this.options.buttons.stop.innerHTML || '&#9632;';
+        } catch (ex) {
+            button.innerHTML = '&#9632;';
+        }
         
         L.DomEvent
             .addListener(button, 'click', this.playStop);
     },
     
     _createMoveLastButton: function (d) {
-        let button = L.DomUtil.create(
-            'div',
-            null,
-            d
-        );
-        button.style.float = 'left';
-        button.style.display = 'block';
-        button.style.width = '10px';
-        button.style.backgroundColor = '#FFFFFF';
-        button.style.border = '3px solid #DFDFDF';
-        button.style.margin = '1px';
-        button.style.cursor = 'pointer';
-        button.style.color = '#333333';
-        button.innerHTML = '>|';
+        let button = L.DomUtil.create('div', null, d);
+        
+        try {
+            this._addStyles(button, this.options.buttons.moveLast.style);
+        } catch (ex) {
+            this._addStyles(button, this._buttonsDefaultStyle);
+        }
+        try {
+            button.innerHTML = this.options.buttons.moveLast.innerHTML;
+        } catch (ex) {
+            button.innerHTML = '&#9655;|';
+        }
         
         L.DomEvent
             .addListener(button, 'click', this.goLast);
+    },
+    
+    _addStyles: function (domUtilElement, styleDictionary) {
+        Object.keys(styleDictionary).forEach(function(key) {
+            domUtilElement.style[key] = styleDictionary[key];
+        });
+    },
+    
+    _zeroPad: function (num, places) {  /** TODO: this should not be around here */
+        return String(num).padStart(places, '0');
+    },
+    
+    _buttonsDefaultStyle: {
+        'float': 'left',
+        'display': 'block',
+        'width': '16px',
+        'backgroundColor': '#FFFFFF',
+        'border': '3px solid #DFDFDF',
+        'margin': '1px',
+        'cursor': 'pointer',
+        'color': '#333333',
+        'textAlign': 'center'
     }
 });
 
-L.control.layersPlayer = function (canvasList, options) {
-    L.Control.LayersPlayer.lastCreated = new L.Control.LayersPlayer(canvasList, options);
+L.control.layersPlayer = function (canvasList, paneId, options) {
+    L.Control.LayersPlayer.lastCreated = new L.Control.LayersPlayer(canvasList, paneId, options);
     return L.Control.LayersPlayer.lastCreated;  /** TODO - ugly solution */
 };

@@ -32,13 +32,20 @@
         // let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate.tiff';
         let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate_float32.tiff';
         let map = L.map('map');
+        let paneId = 'animated_pane';
 
         /* Dark basemap */
         let url = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png';
         L.tileLayer(url, {
             attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd'
+            subdomains: 'abcd',
+            pane: paneId
         }).addTo(map);
+        
+        /* Pane holder for the set of rasters */
+        let paneObj = map.createPane(paneId);
+        // paneObj.style.border = '1px solid #FF7777';  /** TODO: not working */
+        paneObj.style.pointerEvents = 'none';
 
         /* GeoTIFF with n bands */
         d3.request(geotiffUrl).responseType('arraybuffer').get(
@@ -52,47 +59,50 @@
                 scalarFields.forEach(function (sf, index) {
                     let layerSf = L.canvasLayer.scalarField(sf, {
                         color: chroma.scale('RdPu').domain(sf.range),
-                        opacity: 0.65
+                        opacity: 0.65,
+                        pane: paneId
                     }).addTo(map);
                     layerSf.on('click', function (e) {
-                        if (e.value !== null) {
-                            let v = e.value.toFixed(0);
-                            let html = ('<span class="popupText">Value: ' + v + '</span>');
-                            L.popup()
-                                .setLatLng(e.latlng)
-                                .setContent(html)
-                                .openOn(map);
-                        }
+                        if (e.value == null) return;
+                        
+                        let v = e.value.toFixed(4);
+                        let html = ('<span class="popupText">Value: ' + v + '</span>');
+                        L.popup()
+                            .setLatLng(e.latlng)
+                            .setContent(html)
+                            .openOn(map);
                     });
-                    
                     
                     legend["Band " + index] = layerSf;
                     playerReferences.push([layerSf, "Band " + index]);
 
                     bounds = layerSf.getBounds();
                 });
-
-                // Layers control
-                /*
-                L.control.layers(legend, {}, {
-                    position: 'bottomleft',
-                    collapsed: false
-                }).addTo(map);
-                */
                 
-                // Animation control
-                L.control.layersPlayer(playerReferences, {
+                // player control
+                let layersControl = L.control.layersPlayer(playerReferences, paneId, {
                     position: 'bottomleft',
-                    collapsed: false
-                })
-                    .addTo(map);
-                    //.goTo(0);
+                    collapsed: false,
+                    refreshTime: 500,
+                    buttons: {
+                        stop: {
+                            style: {
+                                'float': 'left',
+                                'display': 'block',
+                                'width': '16px',
+                                'backgroundColor': '#FF5555',
+                                'border': '3px solid #DFDFDF',
+                                'margin': '1px',
+                                'cursor': 'pointer',
+                                'color': '#111111',
+                                'textAlign': 'center'
+                            }
+                        }
+                    }
+                }).addTo(map);
 
                 map.fitBounds(bounds);
-                
-                console.log("Map Panes.");
-                console.log(map.getPanes());
-
+                layersControl.goTo(0);
             });
     </script>
   </body>
