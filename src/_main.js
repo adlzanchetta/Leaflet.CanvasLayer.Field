@@ -11,9 +11,6 @@ window.L.Field = Field;
 import ScalarField from './ScalarField.js';
 window.L.ScalarField = ScalarField;
 
-// import ScalarFieldAnim from './ScalarFieldAnim.js';  /** maybe unecessary */
-// window.L.ScalarFieldAnim = ScalarFieldAnim;  /** maybe unecessary */
-
 import VectorField from './VectorField.js';
 window.L.VectorField = VectorField;
 
@@ -22,8 +19,7 @@ require('./layer/L.CanvasLayer.js');
 require('./layer/L.CanvasLayer.SimpleLonLat.js');
 require('./layer/L.CanvasLayer.Field.js');
 require('./layer/L.CanvasLayer.ScalarField.js');
-require('./layer/L.CanvasLayer.ScalarFieldAnim.js');
-// require('./layer/L.CanvasLayer.VectorFieldAnim.js');  /** maybe unecessary */
+require('./layer/L.CanvasLayer.VectorFieldAnim.js');
 
 // control
 require('./control/L.Control.ColorBar.js');
