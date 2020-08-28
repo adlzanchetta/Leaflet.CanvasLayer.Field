@@ -15,6 +15,7 @@ L.Control.LayersPlayer = L.Control.extend({
         L.Util.setOptions(this, options);
     },
     
+    //------------------------------------------------------------------
     onAdd: function (map) {
         this.currentFrame = 0;
         this._map = map;
@@ -35,6 +36,7 @@ L.Control.LayersPlayer = L.Control.extend({
         return this.div;
     },
     
+    //------------------------------------------------------------------
     displayLayer: function (idxShow) {
         /**
          *
@@ -63,6 +65,7 @@ L.Control.LayersPlayer = L.Control.extend({
         });
     },
     
+    //------------------------------------------------------------------
     goTo: function (idx) {
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         this.currentFrame = idx;
@@ -101,11 +104,13 @@ L.Control.LayersPlayer = L.Control.extend({
         return this.div;
     },
     
+    //------------------------------------------------------------------
     goFirst: function() {
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         control.goTo(0);
     },
     
+    //------------------------------------------------------------------
     goLast: function() {
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         let lastId = control.canvasList.length - 1;
@@ -113,6 +118,7 @@ L.Control.LayersPlayer = L.Control.extend({
         control.goTo((lastId >= 0) ? lastId : 0);
     },
     
+    //------------------------------------------------------------------
     goNext: function() {
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         let nextIdx = control.currentFrame + 1;
@@ -127,6 +133,7 @@ L.Control.LayersPlayer = L.Control.extend({
         }
     },
     
+    //------------------------------------------------------------------
     goPrev: function() {
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         let nextIdx = control.currentFrame - 1;
@@ -141,18 +148,21 @@ L.Control.LayersPlayer = L.Control.extend({
         }
     },
     
+    //------------------------------------------------------------------
     playBackward: function() {
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         control.playStop();
         control.currentPlay = setInterval(control.goPrev, control.refreshTime);
     },
     
+    //------------------------------------------------------------------
     playForward: function() {
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         control.playStop();
         control.currentPlay = setInterval(control.goNext, control.refreshTime);
     },
     
+    //------------------------------------------------------------------
     playStop: function() {
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         if (control.currentPlay != null) {
@@ -161,6 +171,7 @@ L.Control.LayersPlayer = L.Control.extend({
         }
     },
     
+    //------------------------------------------------------------------
     _createLabels: function (container) {
         let n = this.canvasList.length;
         let d = document.createElement('div');
@@ -198,10 +209,11 @@ L.Control.LayersPlayer = L.Control.extend({
         return null;
     },
 
+    //------------------------------------------------------------------
     _createButtons: function (container) {
         let d = L.DomUtil.create('div', null, container);
         
-        d.style.width = '160px';  /** TODO - make it custom */
+        d.style.width = 'auto';  /** TODO - make it custom */
         
         this._createMoveFirstButton(d);
         this._createPlayBackwardsButton(d);
@@ -214,151 +226,122 @@ L.Control.LayersPlayer = L.Control.extend({
         this._createMoveLastButton(d);
     },
     
+    //------------------------------------------------------------------
+    _createButton: function (d, id, defaults, onClickFunction) {
+        let button = L.DomUtil.create('div', null, d);
+        
+        // set styles
+        this._addStyles(button, this._buttonsDefaultStyle);
+        try {
+            this._addStyles(button, this.options.buttons[id].style);
+        } catch (ex) {
+            ex;  // simply ignores if nothing is past
+        }
+        
+        // set innerHTML
+        try {
+            button.innerHTML = this.options.buttons[id].innerHTML || defaults.innerHTML;
+        } catch (ex) {
+            button.innerHTML = defaults.innerHTML;
+        }
+        
+        // set tooltip
+        try {
+            button.setAttribute('title', this.options.buttons[id].title || defaults.title);
+        } catch (ex) {
+            button.setAttribute('title', defaults.title);
+        }
+        
+        L.DomEvent
+            .addListener(button, 'click', onClickFunction);
+        
+    },
+    
+    //------------------------------------------------------------------
     _createMoveFirstButton: function (d) {
-        let button = L.DomUtil.create('div', null, d);
-        
-        try {
-            this._addStyles(button, this.options.buttons.moveFirst.style);
-        } catch (ex) {
-            this._addStyles(button, this._buttonsDefaultStyle);
-        }
-        try {
-            button.innerHTML = this.options.buttons.moveFirst.innerHTML;
-        } catch (ex) {
-            button.innerHTML = '|&#9665;';
-        }
-        
-        L.DomEvent
-            .addListener(button, 'click', this.goFirst);
+        let defaults = {
+            'innerHTML': '|&#9665;',
+            'title': 'First frame'
+        };
+        this._createButton(d, 'moveFirst', defaults, this.goFirst);
     },
     
+    //------------------------------------------------------------------
     _createPlayBackwardsButton: function (d) {
-        let button = L.DomUtil.create('div', null, d);
-        
-        try {
-            this._addStyles(button, this.options.buttons.playBackward.style);
-        } catch (ex) {
-            this._addStyles(button, this._buttonsDefaultStyle);
-        }
-        try {
-            button.innerHTML = this.options.buttons.playBackward.innerHTML;
-        } catch (ex) {
-            button.innerHTML = '&#9668;';
-        }
-        
-        L.DomEvent
-            .addListener(button, 'click', this.playBackward);
+        let defaults = {
+            'innerHTML': '&#9668;',
+            'title': 'Play backwards'
+        };
+        this._createButton(d, 'playBackward', defaults, this.playBackward);
     },
     
+    //------------------------------------------------------------------
     _createPreviousButton: function (d) {
-        let button = L.DomUtil.create('div', null, d);
-        
-        try {
-            this._addStyles(button, this.options.buttons.prev.style);
-        } catch (ex) {
-            this._addStyles(button, this._buttonsDefaultStyle);
-        }
-        try {
-            button.innerHTML = this.options.buttons.prev.innerHTML;
-        } catch (ex) {
-            button.innerHTML = '&#9665;';
-        }
-        
-        L.DomEvent
-            .addListener(button, 'click', this.goPrev);
+        let defaults = {
+            'innerHTML': '&#9665;',
+            'title': 'Previous frame'
+        };
+        this._createButton(d, 'prev', defaults, this.goPrev);
     },
     
+    //------------------------------------------------------------------
     _createNextButton: function (d) {
-        let button = L.DomUtil.create('div', null, d);
-        
-        try {
-            this._addStyles(button, this.options.buttons.next.style);
-        } catch (ex) {
-            this._addStyles(button, this._buttonsDefaultStyle);
-        }
-        try {
-            button.innerHTML = this.options.buttons.next.innerHTML;
-        } catch (ex) {
-            button.innerHTML = '&#9655;';
-        }
-        
-        L.DomEvent
-            .addListener(button, 'click', this.goNext);
+        let defaults = {
+            'innerHTML': '&#9655;',
+            'title': 'Next frame'
+        };
+        this._createButton(d, 'next', defaults, this.goNext);
     },
     
+    //------------------------------------------------------------------
     _createPlayForwardButton: function (d) {
-        let button = L.DomUtil.create('div', null, d);
-        
-        try {
-            this._addStyles(button, this.options.buttons.playForward.style);
-        } catch (ex) {
-            this._addStyles(button, this._buttonsDefaultStyle);
-        }
-        try {
-            button.innerHTML = this.options.buttons.playForward.innerHTML;
-        } catch (ex) {
-            button.innerHTML = '&#9658;';
-        }
-        
-        L.DomEvent
-            .addListener(button, 'click', this.playForward);
+        let defaults = {
+            'innerHTML': '&#9658;',
+            'title': 'Play Forward'
+        };
+        this._createButton(d, 'playForward', defaults, this.playForward);
     },
     
+    //------------------------------------------------------------------
     _createStopButton: function (d) {
-        let button = L.DomUtil.create('div', null, d);
-        
-        try {
-            this._addStyles(button, this.options.buttons.stop.style);
-        } catch (ex) {
-            this._addStyles(button, this._buttonsDefaultStyle);
-        }
-        try {
-            button.innerHTML = this.options.buttons.stop.innerHTML || '&#9632;';
-        } catch (ex) {
-            button.innerHTML = '&#9632;';
-        }
-        
-        L.DomEvent
-            .addListener(button, 'click', this.playStop);
+        let defaults = {
+            'innerHTML': '&#9632;',
+            'title': 'Stop'
+        };
+        this._createButton(d, 'stop', defaults, this.playStop);
     },
     
+    //------------------------------------------------------------------
     _createMoveLastButton: function (d) {
-        let button = L.DomUtil.create('div', null, d);
-        
-        try {
-            this._addStyles(button, this.options.buttons.moveLast.style);
-        } catch (ex) {
-            this._addStyles(button, this._buttonsDefaultStyle);
-        }
-        try {
-            button.innerHTML = this.options.buttons.moveLast.innerHTML;
-        } catch (ex) {
-            button.innerHTML = '&#9655;|';
-        }
-        
-        L.DomEvent
-            .addListener(button, 'click', this.goLast);
+        let defaults = {
+            'innerHTML': '&#9655;|',
+            'title': 'Last frame'
+        };
+        this._createButton(d, 'moveLast', defaults, this.goLast);
     },
     
+    //------------------------------------------------------------------
     _addStyles: function (domUtilElement, styleDictionary) {
         Object.keys(styleDictionary).forEach(function(key) {
             domUtilElement.style[key] = styleDictionary[key];
         });
     },
     
+    //------------------------------------------------------------------
     _zeroPad: function (num, places) {  /** TODO: this should not be around here */
         return String(num).padStart(places, '0');
     },
     
+    //------------------------------------------------------------------
     _buttonsDefaultStyle: {
         'float': 'left',
         'display': 'block',
         'width': '16px',
         'backgroundColor': '#FFFFFF',
-        'border': '3px solid #DFDFDF',
-        'margin': '1px',
+        'padding': '2px',
+        'border': '1px solid #333333',
         'cursor': 'pointer',
-        'color': '#333333',
+        'color': '#111111',
         'textAlign': 'center'
     }
 });

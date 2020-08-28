@@ -44,7 +44,6 @@
         
         /* Pane holder for the set of rasters */
         let paneObj = map.createPane(paneId);
-        // paneObj.style.border = '1px solid #FF7777';  /** TODO: not working */
         paneObj.style.pointerEvents = 'none';
 
         /* GeoTIFF with n bands */
@@ -59,11 +58,10 @@
                     n = n + '';
                     return n.length >= width ? n : new Array(width - n.length + 1).join('0') + n;
                 }
-
-                // scalarFields = scalarFields.slice(0, 6);  // TODO - temp shortage
+                
+                // create a canvas for each layer
                 scalarFields.forEach(function (sf, index) {
                     let layerSf = L.canvasLayer.scalarField(sf, {
-                        // 'RdPu'
                         color: chroma.scale('BuPu').domain(sf.range),
                         opacity: 0.65,
                         pane: paneId
@@ -85,11 +83,11 @@
                                 'float': 'left',
                                 'display': 'block',
                                 'width': '16px',
-                                'backgroundColor': '#FF5555',
-                                'border': '3px solid #DFDFDF',
-                                'margin': '1px',
+                                'backgroundColor': '#FFFFFF',
+                                'padding': '2px',
+                                'border': '1px solid #333333',
                                 'cursor': 'pointer',
-                                'color': '#111111',
+                                'color': '#993333',
                                 'textAlign': 'center'
                             }
                         }
