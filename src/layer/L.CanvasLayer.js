@@ -7,6 +7,7 @@
 */
 
 L.CanvasLayer = L.Layer.extend({
+	
     // -- initialized is called on prototype
     initialize: function (options) {
         this._map = null;
@@ -96,6 +97,7 @@ L.CanvasLayer = L.Layer.extend({
         map.addLayer(this);
         return this;
     },
+    
     // --------------------------------------------------------------------------------
     LatLonToMercator: function (latlon) {
         return {
