@@ -16,7 +16,7 @@
   </head>
 
   <body>
-    <h1 class="title mapTitle">ScalarField GeoTIFF (Multiple bands)</h1>
+    <h1 class="title mapTitle">LayersPlayer</h1>
     <div id="map"></div>
 
     <!-- CDN -->
@@ -51,30 +51,25 @@
         d3.request(geotiffUrl).responseType('arraybuffer').get(
             function (error, tiffData) {
                 let scalarFields = L.ScalarField.multipleFromGeoTIFF(tiffData.response);
-                let legend = {};
                 let bounds = {};
                 let playerReferences = [];
+                
+                // just add leading zeros
+                let padZeros = function (n, width) {
+                    n = n + '';
+                    return n.length >= width ? n : new Array(width - n.length + 1).join('0') + n;
+                }
 
                 // scalarFields = scalarFields.slice(0, 6);  // TODO - temp shortage
                 scalarFields.forEach(function (sf, index) {
                     let layerSf = L.canvasLayer.scalarField(sf, {
-                        color: chroma.scale('RdPu').domain(sf.range),
+                        // 'RdPu'
+                        color: chroma.scale('BuPu').domain(sf.range),
                         opacity: 0.65,
                         pane: paneId
                     }).addTo(map);
-                    layerSf.on('click', function (e) {
-                        if (e.value == null) return;
-                        
-                        let v = e.value.toFixed(4);
-                        let html = ('<span class="popupText">Value: ' + v + '</span>');
-                        L.popup()
-                            .setLatLng(e.latlng)
-                            .setContent(html)
-                            .openOn(map);
-                    });
                     
-                    legend["Band " + index] = layerSf;
-                    playerReferences.push([layerSf, "Band " + index]);
+                    playerReferences.push([layerSf, "At: " + padZeros(index, 2) + ":00"]);
 
                     bounds = layerSf.getBounds();
                 });
@@ -100,7 +95,32 @@
                         }
                     }
                 }).addTo(map);
-
+                
+                // response function for onClick
+                layersControl.onClick = function (e) {
+                    
+                    let valueHtmlContent = function (v) {
+                        let formatedValue = (v ? v.toFixed(4) : (0).toFixed(4));
+                        return '<span class="popupText">Value: ' + formatedValue + ' mm</span>';
+                    }
+                    
+                    if (e.frameChange) {
+                        let popUp = L.Control.LayersPlayer.lastCreated.activePopup;
+                        if (!popUp) { return; }
+                        popUp.setContent(valueHtmlContent(e.value));
+                        
+                    } else {
+                        if (e.value == null){ return; }
+                        
+                        L.Control.LayersPlayer.lastCreated.activePopup = L.popup()
+                            .setLatLng(e.latlng)
+                            .setContent(valueHtmlContent(e.value))
+                            .openOn(map);
+                    }
+                    
+                };
+                
+                // move to first layer
                 map.fitBounds(bounds);
                 layersControl.goTo(0);
             });

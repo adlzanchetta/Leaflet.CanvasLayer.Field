@@ -5,6 +5,7 @@
 L.Control.LayersPlayer = L.Control.extend({
 
     initialize: function (canvasList, paneId, options) {
+        this.activePopup = null;
         this.canvasList = canvasList;
         this.paneId = paneId;
         this.refreshTime = options.refreshTime ? options.refreshTime : 1000;
@@ -35,6 +36,11 @@ L.Control.LayersPlayer = L.Control.extend({
     },
     
     displayLayer: function (idxShow) {
+        /**
+         *
+         * idxShow: int. From 1 to control.canvasList.length (inclusive)
+         */
+        
         let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         let paneChildren = control._map.getPane(control.paneId);
         paneChildren = paneChildren.children;
@@ -43,11 +49,22 @@ L.Control.LayersPlayer = L.Control.extend({
         
         [...Array(control.canvasList.length).keys()].forEach(function (idxCurrent) {
             let paneChild = paneChildren[idxCurrent+1];
-            paneChild.style.display = (idxShow == (idxCurrent+1)) ? 'block' : 'none';
+            let isActive = (idxShow == (idxCurrent+1));
+            
+            /** show or hide */
+            paneChild.style.display = isActive ? 'block' : 'none';
+            
+            /** activate or deactivate onClick response */
+            if (control.onClick && isActive) {
+                control.canvasList[idxCurrent][0].on('click', control.onClick);
+            } else {
+                control.canvasList[idxCurrent][0].off('click');
+            }
         });
     },
     
     goTo: function (idx) {
+        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
         this.currentFrame = idx;
         
         /** show idx canvas, hide other canvas */
@@ -62,6 +79,24 @@ L.Control.LayersPlayer = L.Control.extend({
         this.div
             .querySelector('.leaflet-control-layersPlayer-frameLabel')
             .innerHTML = this.canvasList[idx][1];
+            
+        /** update onClick function */
+        if (control.onClick) {
+            this.canvasList[control.currentFrame][0].on('click', control.onClick);
+        }
+        
+        /** update popup content */
+        if (this.activePopup) {
+            let latLng = this.activePopup._latlng;
+            let activeField = this.canvasList[control.currentFrame][0];
+            let cellValue = activeField._field['valueAt'](latLng.lng, latLng.lat);
+            
+            this.canvasList[control.currentFrame][0].fireEvent('click', {
+                latlng: latLng,
+                frameChange: true,
+                value: cellValue
+            });
+        }
         
         return this.div;
     },
