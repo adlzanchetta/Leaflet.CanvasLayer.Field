@@ -30,7 +30,8 @@
 
     <script>
         // let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate.tiff';
-        let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate_float32.tiff';
+        // let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate_float32.tiff';
+        let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate_uint8.tiff';
         let map = L.map('map');
         let paneId = 'animated_pane';
 
@@ -53,6 +54,12 @@
                 let bounds = {};
                 let playerReferences = [];
                 
+                // if the geotiff file has the META_ADD and META_MULT metadata for linear transformation, consider it
+                let tiff = GeoTIFF.parse(tiffData.response);
+                let tiffMetaData = tiff.getImage().getGDALMetadata();
+                let coefAdd = tiffMetaData.META_ADD ? parseFloat(tiffMetaData.META_ADD) : 0;
+                let coefMult = tiffMetaData.META_MULT ? parseFloat(tiffMetaData.META_MULT) : 1;
+                
                 // just add leading zeros
                 let padZeros = function (n, width) {
                     n = n + '';
@@ -61,6 +68,15 @@
                 
                 // create a canvas for each layer
                 scalarFields.forEach(function (sf, index) {
+                    
+                    // linearly rescale image values
+                    let rescaleValue = function(e) {return e == null ? null : ((e*coefMult) + coefAdd)}
+					sf.grid = sf.grid.map(function(e) {
+                        return e.map(function(e) { return rescaleValue(e); });
+                    });
+                    sf.range = sf.range.map(function(e){ return rescaleValue(e); });
+					
+                    // add to map
                     let layerSf = L.canvasLayer.scalarField(sf, {
                         color: chroma.scale('BuPu').domain(sf.range),
                         opacity: 0.65,
@@ -98,7 +114,7 @@
                 layersControl.onClick = function (e) {
                     
                     let valueHtmlContent = function (v) {
-                        let formatedValue = (v ? v.toFixed(4) : (0).toFixed(4));
+                        let formatedValue = (v ? v.toFixed(1) : (0).toFixed(1));
                         return '<span class="popupText">Value: ' + formatedValue + ' mm</span>';
                     }
                     
