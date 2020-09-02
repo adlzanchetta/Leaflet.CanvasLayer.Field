@@ -11,6 +11,7 @@ L.Control.LayersPlayer = L.Control.extend({
         this.refreshTime = options.refreshTime ? options.refreshTime : 1000;
         this.loop = options.loop ? options.loop : false;
         this.currentPlay = null;
+        this.buttons = {};
         options.cvLst = this.canvasList;
         L.Util.setOptions(this, options);
     },
@@ -37,13 +38,13 @@ L.Control.LayersPlayer = L.Control.extend({
     },
     
     //------------------------------------------------------------------
+    /**
+     * Make only the idxShow-th layer visible. 
+     * idxShow: int. From 1 to control.canvasList.length (inclusive)
+     */
     displayLayer: function (idxShow) {
-        /**
-         *
-         * idxShow: int. From 1 to control.canvasList.length (inclusive)
-         */
         
-        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        let control = L.Control.LayersPlayer.lastCreated;
         let paneChildren = control._map.getPane(control.paneId);
         paneChildren = paneChildren.children;
         
@@ -66,8 +67,15 @@ L.Control.LayersPlayer = L.Control.extend({
     },
     
     //------------------------------------------------------------------
+    toggleLoop: function () {
+        let control = L.Control.LayersPlayer.lastCreated;
+        control.loop = !control.loop;
+        control._setButtonActive(this, control.loop);
+    },
+    
+    //------------------------------------------------------------------
     goTo: function (idx) {
-        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        let control = L.Control.LayersPlayer.lastCreated;
         this.currentFrame = idx;
         
         /** show idx canvas, hide other canvas */
@@ -106,13 +114,13 @@ L.Control.LayersPlayer = L.Control.extend({
     
     //------------------------------------------------------------------
     goFirst: function() {
-        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        let control = L.Control.LayersPlayer.lastCreated;
         control.goTo(0);
     },
     
     //------------------------------------------------------------------
     goLast: function() {
-        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        let control = L.Control.LayersPlayer.lastCreated;
         let lastId = control.canvasList.length - 1;
         
         control.goTo((lastId >= 0) ? lastId : 0);
@@ -120,7 +128,7 @@ L.Control.LayersPlayer = L.Control.extend({
     
     //------------------------------------------------------------------
     goNext: function() {
-        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        let control = L.Control.LayersPlayer.lastCreated;
         let nextIdx = control.currentFrame + 1;
         
         if (nextIdx < control.canvasList.length){
@@ -135,7 +143,7 @@ L.Control.LayersPlayer = L.Control.extend({
     
     //------------------------------------------------------------------
     goPrev: function() {
-        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        let control = L.Control.LayersPlayer.lastCreated;
         let nextIdx = control.currentFrame - 1;
         
         if (nextIdx >= 0){
@@ -150,25 +158,38 @@ L.Control.LayersPlayer = L.Control.extend({
     
     //------------------------------------------------------------------
     playBackward: function() {
-        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        let control = L.Control.LayersPlayer.lastCreated;
         control.playStop();
         control.currentPlay = setInterval(control.goPrev, control.refreshTime);
+        control._setButtonActive(this, true);
+        control._setButtonActive(control.buttons['playForward'], false);
     },
     
     //------------------------------------------------------------------
     playForward: function() {
-        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        let control = L.Control.LayersPlayer.lastCreated;
         control.playStop();
         control.currentPlay = setInterval(control.goNext, control.refreshTime);
+        control._setButtonActive(this, true);
+        control._setButtonActive(control.buttons['playBackward'], false);
     },
     
     //------------------------------------------------------------------
     playStop: function() {
-        let control = L.Control.LayersPlayer.lastCreated;  /** TODO: fix */
+        let control = L.Control.LayersPlayer.lastCreated;
         if (control.currentPlay != null) {
             clearInterval(control.currentPlay);
             control.currentPlay = null;
         }
+        control._setButtonActive(control.buttons['playForward'], false);
+        control._setButtonActive(control.buttons['playBackward'], false);
+    },
+    
+    //------------------------------------------------------------------
+    _addStyles: function (domUtilElement, styleDictionary) {
+        Object.keys(styleDictionary).forEach(function(key) {
+            domUtilElement.style[key] = styleDictionary[key];
+        });
     },
     
     //------------------------------------------------------------------
@@ -178,8 +199,7 @@ L.Control.LayersPlayer = L.Control.extend({
         
         d3
             .select(d)
-            .attr('class', 'leaflet-control-layersPlayer-title')  /** TODO - How to define it? */
-            .attr('class', 'leaflet-control-colorBar-title');     /** TODO - review this */
+            .attr('class', 'leaflet-control-layersPlayer-title');
         
         d3
             .select(d)
@@ -213,17 +233,19 @@ L.Control.LayersPlayer = L.Control.extend({
     _createButtons: function (container) {
         let d = L.DomUtil.create('div', null, container);
         
-        d.style.width = 'auto';  /** TODO - make it custom */
+        d.style.width = 'auto';
         
-        this._createMoveFirstButton(d);
-        this._createPlayBackwardsButton(d);
-        this._createPreviousButton(d);
+        this.buttons['moveFirst'] = this._createMoveFirstButton(d);
+        this.buttons['playBackward'] = this._createPlayBackwardsButton(d);
+        this.buttons['previous'] = this._createPreviousButton(d);
         
-        this._createStopButton(d);
+        this.buttons['stop'] = this._createStopButton(d);
         
-        this._createNextButton(d);
-        this._createPlayForwardButton(d);
-        this._createMoveLastButton(d);
+        this.buttons['next'] = this._createNextButton(d);
+        this.buttons['playForward'] = this._createPlayForwardButton(d);
+        this.buttons['moveLast'] = this._createMoveLastButton(d);
+        
+        this.buttons['toggleLoop'] = this._createToggleLoopButton(d);
     },
     
     //------------------------------------------------------------------
@@ -231,7 +253,7 @@ L.Control.LayersPlayer = L.Control.extend({
         let button = L.DomUtil.create('div', null, d);
         
         // set styles
-        this._addStyles(button, this._buttonsDefaultStyle);
+        this._addStyles(button, this._buttonsDefaultStyleOff);
         try {
             this._addStyles(button, this.options.buttons[id].style);
         } catch (ex) {
@@ -255,6 +277,7 @@ L.Control.LayersPlayer = L.Control.extend({
         L.DomEvent
             .addListener(button, 'click', onClickFunction);
         
+        return (button);
     },
     
     //------------------------------------------------------------------
@@ -263,7 +286,7 @@ L.Control.LayersPlayer = L.Control.extend({
             'innerHTML': '|&#9665;',
             'title': 'First frame'
         };
-        this._createButton(d, 'moveFirst', defaults, this.goFirst);
+        return this._createButton(d, 'moveFirst', defaults, this.goFirst);
     },
     
     //------------------------------------------------------------------
@@ -272,7 +295,7 @@ L.Control.LayersPlayer = L.Control.extend({
             'innerHTML': '&#9668;',
             'title': 'Play backwards'
         };
-        this._createButton(d, 'playBackward', defaults, this.playBackward);
+        return this._createButton(d, 'playBackward', defaults, this.playBackward);
     },
     
     //------------------------------------------------------------------
@@ -281,7 +304,7 @@ L.Control.LayersPlayer = L.Control.extend({
             'innerHTML': '&#9665;',
             'title': 'Previous frame'
         };
-        this._createButton(d, 'prev', defaults, this.goPrev);
+        return this._createButton(d, 'prev', defaults, this.goPrev);
     },
     
     //------------------------------------------------------------------
@@ -290,7 +313,7 @@ L.Control.LayersPlayer = L.Control.extend({
             'innerHTML': '&#9655;',
             'title': 'Next frame'
         };
-        this._createButton(d, 'next', defaults, this.goNext);
+        return this._createButton(d, 'next', defaults, this.goNext);
     },
     
     //------------------------------------------------------------------
@@ -299,7 +322,7 @@ L.Control.LayersPlayer = L.Control.extend({
             'innerHTML': '&#9658;',
             'title': 'Play Forward'
         };
-        this._createButton(d, 'playForward', defaults, this.playForward);
+        return this._createButton(d, 'playForward', defaults, this.playForward);
     },
     
     //------------------------------------------------------------------
@@ -308,7 +331,7 @@ L.Control.LayersPlayer = L.Control.extend({
             'innerHTML': '&#9632;',
             'title': 'Stop'
         };
-        this._createButton(d, 'stop', defaults, this.playStop);
+        return this._createButton(d, 'stop', defaults, this.playStop);
     },
     
     //------------------------------------------------------------------
@@ -317,23 +340,34 @@ L.Control.LayersPlayer = L.Control.extend({
             'innerHTML': '&#9655;|',
             'title': 'Last frame'
         };
-        this._createButton(d, 'moveLast', defaults, this.goLast);
+        return this._createButton(d, 'moveLast', defaults, this.goLast);
     },
     
     //------------------------------------------------------------------
-    _addStyles: function (domUtilElement, styleDictionary) {
-        Object.keys(styleDictionary).forEach(function(key) {
-            domUtilElement.style[key] = styleDictionary[key];
-        });
+    _createToggleLoopButton: function (d) {
+        let defaults = {
+            'innerHTML': '&#8734;',
+            'title': 'Loop'
+        };
+        return this._createButton(d, 'toggleLoop', defaults, this.toggleLoop);
     },
     
     //------------------------------------------------------------------
-    _zeroPad: function (num, places) {  /** TODO: this should not be around here */
+    _setButtonActive: function (button, isActive) {
+        let control = L.Control.LayersPlayer.lastCreated;
+        
+        button.style['backgroundColor'] = isActive ? 
+            control._buttonsDefaultStyleOn['backgroundColor'] : 
+            control._buttonsDefaultStyleOff['backgroundColor'];
+    },
+    
+    //------------------------------------------------------------------
+    _zeroPad: function (num, places) {
         return String(num).padStart(places, '0');
     },
     
     //------------------------------------------------------------------
-    _buttonsDefaultStyle: {
+    _buttonsDefaultStyleOff: {
         'float': 'left',
         'display': 'block',
         'width': '16px',
@@ -343,10 +377,38 @@ L.Control.LayersPlayer = L.Control.extend({
         'cursor': 'pointer',
         'color': '#111111',
         'textAlign': 'center'
+    },
+    _buttonsDefaultStyleOn: {
+        'backgroundColor': '#AFAFAF',
     }
 });
 
+/**
+ * Only one LayersPlayer controler is expected to exist at a time.
+ * A singleton approach is used to create and refeer to the initiated controlers.
+ **/
 L.control.layersPlayer = function (canvasList, paneId, options) {
-    L.Control.LayersPlayer.lastCreated = new L.Control.LayersPlayer(canvasList, paneId, options);
-    return L.Control.LayersPlayer.lastCreated;  /** TODO - ugly solution */
+     
+    let newControler = new L.Control.LayersPlayer(canvasList, paneId, options);
+    
+    // if there is an existing Layer Player controler, destroy it recursively
+    if (L.Control.LayersPlayer.lastCreated) {
+        let clearInner = function (node) {
+            while (node.hasChildNodes()) {
+                clear(node.firstChild);
+            }
+        };
+        let clear = function(node) {
+            while (node.hasChildNodes()) {
+                clear(node.firstChild);
+            }
+            node.parentNode.removeChild(node);
+        };
+        clearInner(L.Control.LayersPlayer.lastCreated.div);
+        delete L.Control.LayersPlayer.lastCreated;
+        console.log('Destroyied the old one!');
+    }
+    
+    L.Control.LayersPlayer.lastCreated = newControler;
+    return L.Control.LayersPlayer.lastCreated;
 };
