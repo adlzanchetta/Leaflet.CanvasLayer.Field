@@ -70,7 +70,7 @@ L.Control.LayersPlayer = L.Control.extend({
     toggleLoop: function () {
         let control = L.Control.LayersPlayer.lastCreated;
         control.loop = !control.loop;
-        control._setButtonActive(this, control.loop);
+        control._setButtonActive(this, 'toggleLoop', control.loop);
     },
     
     //------------------------------------------------------------------
@@ -161,8 +161,8 @@ L.Control.LayersPlayer = L.Control.extend({
         let control = L.Control.LayersPlayer.lastCreated;
         control.playStop();
         control.currentPlay = setInterval(control.goPrev, control.refreshTime);
-        control._setButtonActive(this, true);
-        control._setButtonActive(control.buttons['playForward'], false);
+        control._setButtonActive(this, 'playBackward', true);
+        control._setButtonActive(control.buttons['playForward'], 'playForward', false);
     },
     
     //------------------------------------------------------------------
@@ -170,8 +170,8 @@ L.Control.LayersPlayer = L.Control.extend({
         let control = L.Control.LayersPlayer.lastCreated;
         control.playStop();
         control.currentPlay = setInterval(control.goNext, control.refreshTime);
-        control._setButtonActive(this, true);
-        control._setButtonActive(control.buttons['playBackward'], false);
+        control._setButtonActive(this, 'playForward', true);
+        control._setButtonActive(control.buttons['playBackward'], 'playBackward', false);
     },
     
     //------------------------------------------------------------------
@@ -181,8 +181,8 @@ L.Control.LayersPlayer = L.Control.extend({
             clearInterval(control.currentPlay);
             control.currentPlay = null;
         }
-        control._setButtonActive(control.buttons['playForward'], false);
-        control._setButtonActive(control.buttons['playBackward'], false);
+        control._setButtonActive(control.buttons['playForward'], 'playForward', false);
+        control._setButtonActive(control.buttons['playBackward'], 'playBackward', false);
     },
     
     //------------------------------------------------------------------
@@ -250,14 +250,32 @@ L.Control.LayersPlayer = L.Control.extend({
     
     //------------------------------------------------------------------
     _createButton: function (d, id, defaults, onClickFunction) {
-        let button = L.DomUtil.create('div', null, d);
         
-        // set styles
-        this._addStyles(button, this._buttonsDefaultStyleOff);
+        // set a custom class if it is provided
+        let customClass = null;
         try {
-            this._addStyles(button, this.options.buttons[id].style);
+            customClass = this.options.buttons[id].cssClass;
         } catch (ex) {
-            ex;  // simply ignores if nothing is past
+            customClass = null;
+        }
+        
+        // create button
+        let button = L.DomUtil.create('div', customClass, d);
+        
+        // set custom styles if they are provided
+        let customStyle = undefined;
+        try {
+            customStyle = this.options.buttons[id].style;
+        } catch (ex) {
+            customStyle = undefined;
+        }
+        if (customStyle) {
+            this._addStyles(button, customStyle);
+        }
+        
+        // set default styles if nothing is provided
+        if ((!customClass) && (!customStyle)){
+            this._addStyles(button, this._buttonsDefaultStyle);
         }
         
         // set innerHTML
@@ -353,12 +371,22 @@ L.Control.LayersPlayer = L.Control.extend({
     },
     
     //------------------------------------------------------------------
-    _setButtonActive: function (button, isActive) {
-        let control = L.Control.LayersPlayer.lastCreated;
+    _setButtonActive: function (button, buttonId, isActive) {
+        // get the 'running class' id
+        let buttonClassRunId = undefined;
+        try {
+            buttonClassRunId = this.options.buttons[buttonId].cssClassRun;
+        } catch (ex) {
+            buttonClassRunId = undefined;
+        }
+        if (!buttonClassRunId) { return; }
         
-        button.style['backgroundColor'] = isActive ? 
-            control._buttonsDefaultStyleOn['backgroundColor'] : 
-            control._buttonsDefaultStyleOff['backgroundColor'];
+        // set/remove it
+        if (isActive) {
+            L.DomUtil.addClass(button, buttonClassRunId);
+        } else {
+            L.DomUtil.removeClass(button, buttonClassRunId);
+        }
     },
     
     //------------------------------------------------------------------
@@ -367,7 +395,7 @@ L.Control.LayersPlayer = L.Control.extend({
     },
     
     //------------------------------------------------------------------
-    _buttonsDefaultStyleOff: {
+    _buttonsDefaultStyle: {
         'float': 'left',
         'display': 'block',
         'width': '16px',
@@ -377,9 +405,6 @@ L.Control.LayersPlayer = L.Control.extend({
         'cursor': 'pointer',
         'color': '#111111',
         'textAlign': 'center'
-    },
-    _buttonsDefaultStyleOn: {
-        'backgroundColor': '#AFAFAF',
     }
 });
 
@@ -406,7 +431,6 @@ L.control.layersPlayer = function (canvasList, paneId, options) {
         };
         clearInner(L.Control.LayersPlayer.lastCreated.div);
         delete L.Control.LayersPlayer.lastCreated;
-        console.log('Destroyied the old one!');
     }
     
     L.Control.LayersPlayer.lastCreated = newControler;

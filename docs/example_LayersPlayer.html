@@ -13,6 +13,34 @@
     <link rel="stylesheet" href="examples.css" />
 
     <link href="https://fonts.googleapis.com/css?family=Roboto:100,400" rel="stylesheet">
+    
+    <style>
+      /* classes used by the player buttons */
+      
+      /* buttons when not pressed or running */
+      div.leaflet-control-layersPlayer-button {
+        float: left;
+        display: block;
+        width: 16px;
+        background-color: #EEEEEE;
+        padding: 2px;
+        border: 1px solid #333333;
+        cursor: pointer;
+        color: #111111;
+        text-align: center;
+      }
+      
+      /* buttons when pressed */
+      div.leaflet-control-layersPlayer-button:active {
+        background-color: #999999;
+      }
+      
+      /* buttons when running */
+      div.leaflet-control-layersPlayer-button-run {
+        background-color: #BBBBBB;
+      }
+    </style>
+    
   </head>
 
   <body>
@@ -29,8 +57,6 @@
     <script src="dist/leaflet.canvaslayer.field.js"></script>
 
     <script>
-        // let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate.tiff';
-        // let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate_float32.tiff';
         let geotiffUrl = 'data/HRRRfromPando_20180308_h06_prate_uint8.tiff';
         let map = L.map('map');
         let paneId = 'animated_pane';
@@ -71,11 +97,11 @@
                     
                     // linearly rescale image values
                     let rescaleValue = function(e) {return e == null ? null : ((e*coefMult) + coefAdd)}
-					sf.grid = sf.grid.map(function(e) {
+                    sf.grid = sf.grid.map(function(e) {
                         return e.map(function(e) { return rescaleValue(e); });
                     });
                     sf.range = sf.range.map(function(e){ return rescaleValue(e); });
-					
+                    
                     // add to map
                     let layerSf = L.canvasLayer.scalarField(sf, {
                         color: chroma.scale('BuPu').domain(sf.range),
@@ -94,17 +120,34 @@
                     collapsed: false,
                     refreshTime: 500,
                     buttons: {
+						moveFirst: {
+							cssClass: 'leaflet-control-layersPlayer-button'
+						},
+						playBackward: {
+                            cssClass: 'leaflet-control-layersPlayer-button',
+                            cssClassRun: 'leaflet-control-layersPlayer-button-run'
+                        },
+						previous: {
+                            cssClass: 'leaflet-control-layersPlayer-button'
+                        },
+                        next: {
+                            cssClass: 'leaflet-control-layersPlayer-button'
+                        },
+                        playForward: {
+                            cssClass: 'leaflet-control-layersPlayer-button',
+                            cssClassRun: 'leaflet-control-layersPlayer-button-run'
+                        },
+                        moveLast: {
+							cssClass: 'leaflet-control-layersPlayer-button'
+						},
+                        toggleLoop: {
+                            cssClass: 'leaflet-control-layersPlayer-button',
+                            cssClassRun: 'leaflet-control-layersPlayer-button-run'
+                        },
                         stop: {
+							cssClass: 'leaflet-control-layersPlayer-button',
                             style: {
-                                'float': 'left',
-                                'display': 'block',
-                                'width': '16px',
-                                'backgroundColor': '#FFFFFF',
-                                'padding': '2px',
-                                'border': '1px solid #333333',
-                                'cursor': 'pointer',
-                                'color': '#993333',
-                                'textAlign': 'center'
+                                'color': '#993333'
                             }
                         }
                     }
